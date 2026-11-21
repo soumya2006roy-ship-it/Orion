@@ -133,10 +133,33 @@ export const Views = {
         </div>
     `,
 
-    login: ({ enableDemoAccounts = false } = {}) => `
+    login: ({ enableDemoAccounts = false, next = null } = {}) => {
+        let noticeHtml = '';
+        if (next === 'schemes') {
+            noticeHtml = `
+                <div class="auth-notice-banner" style="background: rgba(208, 173, 99, 0.12); border: 1px solid rgba(208, 173, 99, 0.35); border-radius: var(--radius-sm, 6px); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span><strong>Authentication Required:</strong> Please sign in to view and evaluate Government Schemes for your organization.</span>
+                </div>`;
+        } else if (next === 'organizations') {
+            noticeHtml = `
+                <div class="auth-notice-banner" style="background: rgba(208, 173, 99, 0.12); border: 1px solid rgba(208, 173, 99, 0.35); border-radius: var(--radius-sm, 6px); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span><strong>Authentication Required:</strong> Please sign in to manage organizations.</span>
+                </div>`;
+        }
+
+        return `
         <div class="auth-layout">
             ${authShowcase()}
             <div class="card auth-card" style="animation: scaleIn var(--dur-modal) var(--ease-smooth) forwards;">
+                ${noticeHtml}
                 <p class="page-eyebrow auth-card-eyebrow">RETURNING PERSONNEL</p>
                 <h2 class="auth-heading">System Login</h2>
                 <form id="login-form" novalidate>
@@ -199,7 +222,8 @@ export const Views = {
                 ` : ''}
             </div>
         </div>
-    `,
+        `;
+    },
 
     register: () => `
         <div class="auth-layout">
@@ -372,9 +396,11 @@ export const Views = {
             </a>`;
         }
         navTabs += `<a href="#/organizations" class="btn btn-outline nav-tab-btn" style="display:flex; align-items:center; gap:6px;">Organizations</a>`;
-        navTabs += `<a href="#/schemes" class="btn btn-outline nav-tab-btn" style="display:flex; align-items:center; gap:6px;">
-            <svg style="width:16px;height:16px;" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z"/></svg> Schemes
-        </a>`;
+        if (user.role === 'manager' || user.role === 'exec' || user.role === 'admin' || user.isPlatformAdmin) {
+            navTabs += `<a href="#/schemes" class="btn btn-outline nav-tab-btn" style="display:flex; align-items:center; gap:6px;">
+                <svg style="width:16px;height:16px;" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18L12 21L19 17.18V13.18L12 17L5 13.18Z"/></svg> Schemes
+            </a>`;
+        }
         if (user.role === 'exec') {
             navTabs += `<a href="#/oversight" class="btn btn-outline nav-tab-btn" style="display:flex; align-items:center; gap:6px;">
                 <svg style="width:16px;height:16px;" viewBox="0 0 24 24"><path fill="currentColor" d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" /></svg> Oversight

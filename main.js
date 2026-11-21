@@ -471,7 +471,19 @@ const routes = {
     },
     '#/schemes': async () => {
         if (!currentUser) {
+            showToast('Please sign in to access Government Schemes & Subsidies', 'info');
             window.location.hash = '#/login?next=schemes';
+            return;
+        }
+
+        const canAccess = currentUser.role === 'manager' ||
+            currentUser.role === 'exec' ||
+            currentUser.role === 'admin' ||
+            Boolean(currentUser.isPlatformAdmin);
+
+        if (!canAccess) {
+            showToast('Access restricted: Government Schemes are only accessible to organization managers and administrators.', 'warning');
+            window.location.hash = '#/dashboard';
             return;
         }
 
@@ -599,12 +611,19 @@ const routes = {
         await renderSchemesPage();
     },
     '#/login': async () => {
+        const next = new URLSearchParams(window.location.hash.split('?')[1] || '').get('next');
+        const resolveDestination = (target) => {
+            if (target === 'organizations') return '#/organizations';
+            if (target === 'schemes') return '#/schemes';
+            return '#/dashboard';
+        };
+
         if (currentUser) {
-            const next = new URLSearchParams(window.location.hash.split('?')[1] || '').get('next');
-            window.location.hash = next === 'organizations' ? '#/organizations' : '#/dashboard';
+            window.location.hash = resolveDestination(next);
             return;
         }
-        await render(Views.login());
+        const clientConfig = await store.getConfig().catch(() => ({}));
+        await render(Views.login({ enableDemoAccounts: Boolean(clientConfig.enableDemoAccounts), next }));
 
         const form = document.getElementById('login-form');
         const errorMsg = document.getElementById('login-error');
@@ -624,8 +643,8 @@ const routes = {
                     currentUser = user;
                     updateAuthUI();
                     toast.success(`Welcome back, ${user.name || user.username}!`);
-                    const next = new URLSearchParams(window.location.hash.split('?')[1] || '').get('next');
-                    window.location.hash = next === 'organizations' ? '#/organizations' : '#/dashboard';
+                    const currentNext = new URLSearchParams(window.location.hash.split('?')[1] || '').get('next') || next;
+                    window.location.hash = resolveDestination(currentNext);
                 } else {
                     errorMsg.textContent = 'Invalid credentials.';
                     btn.textContent = 'AUTHENTICATE';
@@ -675,7 +694,8 @@ const routes = {
                         currentUser = user;
                         updateAuthUI();
                         toast.success('Welcome, ' + (user.name || user.username) + '! (Demo ' + card.querySelector('.demo-credential-role').textContent + ')');
-                        window.location.hash = '#/dashboard';
+                        const currentNext = new URLSearchParams(window.location.hash.split('?')[1] || '').get('next') || next;
+                        window.location.hash = resolveDestination(currentNext);
                     } else {
                         errorMsg.textContent = 'Demo login failed — run "node seed_demo.js" to create accounts.';
                         btn.textContent = 'AUTHENTICATE';
@@ -1812,6 +1832,18 @@ function setupRegisterPage() {
 
 function updateAuthUI() {
     const navLogin = document.getElementById('nav-login');
+    const navSchemes = document.getElementById('nav-schemes');
+    const canSeeSchemes = currentUser && (
+        currentUser.role === 'manager' ||
+        currentUser.role === 'exec' ||
+        currentUser.role === 'admin' ||
+        Boolean(currentUser.isPlatformAdmin)
+    );
+
+    if (navSchemes) {
+        navSchemes.style.display = canSeeSchemes ? '' : 'none';
+    }
+
     if (currentUser) {
         navLogin.textContent = 'Dashboard';
         navLogin.href = '#/dashboard';
